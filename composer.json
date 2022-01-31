@@ -1,5 +1,6 @@
 {
     "require": {
-        "team-reflex/discord-php": "dev-master"
+        "team-reflex/discord-php": "dev-master",
+        "google/apiclient": "^2.0"
     }
 }
