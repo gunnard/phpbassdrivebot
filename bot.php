@@ -84,7 +84,91 @@ function getShow() {
     // close curl resource to free up system resources
     curl_close($ch);
     $bassdriveShow = clean_string($output[6]);
-    return $bassdriveShow;;
+    return $bassdriveShow;
+}
+
+function getThumbnail($show) {
+    global $conn;
+    $showNames = ['Fokuz Recording',
+        'Prague Connection',
+        'Subfactory',
+        'Four Corners',
+        'Bankbeats',
+        'Skeptics Presents',
+        'Vital Habits',
+        'Translation Sound',
+        'Rinse N Wash',
+        'Bass Boom',
+        'DrumObsession',
+        'DnPea',
+        'Context',
+        'XPOSURE',
+        'Sohl Patrol',
+        'River City Rinseout',
+        'Atmospheric Alignment',
+        'Promo ZO',
+        'Balearic Breaks',
+        'Bryan Gee',
+        'Northern Groove',
+        'Greenroom',
+        'Random Movement',
+        'Power Rinse',
+        'Stamina',
+        'Trainspotting Sessions',
+        'Planet V',
+        'Eastside Sessions',
+        'Blu Saphir',
+        'Mod Con Records',
+        'Funked Up',
+        'Just Track',
+        'Ebb Flow',
+        'Impressions',
+        'Australian Atmospherics',
+        'Contrast',
+        'Deep Soul',
+        'Onward',
+        'Launch',
+        'Represent',
+        'SixOneOh',
+        'Resistance',
+        'Crucial Xtra',
+        'Phuture Beats',
+        'EW New York',
+        'Hangover Hotline',
+        'Schematic Sound',
+        'Crucial X',
+        'Deceit FM',
+        'Hive',
+        'High Defnition',
+        'Strictly Science Mixshow',
+        'Warm Ears',
+        'Fuzed Funk',
+        'Lab'];
+    foreach ($showNames as $realName) {
+        if (str_contains($show,$realName)) {
+            $actualShow = $realName;
+            break;
+        } else {
+            $actualShow = null;
+        }
+    }
+
+    if (isset($actualShow)) {
+        $sql = "SELECT flyer FROM show_info WHERE showname like '%$actualShow%'";
+        $result = $conn->query($sql);
+        $row = $result->fetch_assoc(); 
+        if ($row['flyer'] != null) {
+            $thumbnail = $row['flyer'];
+        }
+    } else {
+        if (str_contains(strtolower($show),"live")) {
+            $thumbnail = "https://unicornriot.ninja/wp-content/uploads/2018/09/LiveChannel334x212v2.png";
+        }else {
+            $thumbnail ="https://cdn.discordapp.com/attachments/918981144207302716/934265946397343815/Bassdrive_TUNE_IN_Blue.jpg";
+        }
+    }
+    echo "AT THE END";
+    return $thumbnail;
 }
 
     //bassdriveInfo=$(curl -X GET http://bassdrive.com:8000/7.html -H "Connection: keep-alive" -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.
@@ -96,17 +180,18 @@ $discord->on('ready', function ($discord) {
 
     $discord->getLoop()->addPeriodicTimer(10, function() use ($discord) {
         global $currentShow;
-        global $mysqli; 
 
         $newShow = getShow();
         echo "-> " . strlen($currentShow) . "---" . strlen($newShow) . "<--\n";
         
         if ($currentShow != $newShow) {
             $currentShow = $newShow;
+            $thumbnail = getThumbnail($currentShow);
             $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
             $embed->setTitle("::: [bd] now playing ::: $currentShow ::" )
                   ->setType($embed::TYPE_RICH)
                   ->setDescription('Tune in: https://www.bassdrive.com/pop-up')
+                  ->setThumbnail($thumbnail)
                   ->setColor('blue');
             $channel = $discord->getChannel('700507571550945281');
             $channel->sendMessage(MessageBuilder::new()
@@ -123,6 +208,45 @@ $discord->on('ready', function ($discord) {
             $message->reply('pong');
         }
 
+        if (str_contains($message->content,'!weather') && ! $message->author->bot) {
+            $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
+            $weather = explode(' ',$message->content);
+            $location = '';
+            if (sizeof($weather) > 1) {
+                for ($x=1; $x<sizeof($weather); $x++) {
+                    $location .= $weather[$x] . '-';
+                }
+                $location = rtrim($location,'-');
+            } else {
+                $location = $weather[1];
+            }
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, "https://wttr.in/$location" . "_0tqp.png");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                'Connection: Keep-Alive',
+                'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.',
+                'Upgrade-Insecure-Requests: 1',
+                'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                'Accept-Language: en-US,en;q=0.9',
+                'Accept-Encoding: gzip, deflate'
+            ));
+            // $output contains the output string
+            $output = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if($httpCode == 404) {
+                $weatherImage = "https://cdn.guff.com/site_0/media/33000/32179/items/ef345c59c3c6650182a30687.jpg";
+            }else{
+                $weatherImage = "https://wttr.in/$location" . "_0tqp.png";
+            }
+            curl_close($ch);
+            #$embed->setImage("https://wttr.in/$location" . "_0tqp.png")
+            $embed->setImage($weatherImage)
+                  ->setType($embed::TYPE_RICH)
+                  ->setFooter("Perfect Weather for BassDrive")
+                  ->setColor('blue');
+            $message->channel->sendEmbed($embed);
+        }
 
         if (in_array(strtolower($message->content),$weekDays) && ! $message->author->bot) {
             $theDay = ltrim(strtolower($message->content),'!');
@@ -146,11 +270,13 @@ $discord->on('ready', function ($discord) {
         if ($message->content == '!nowplaying' && ! $message->author->bot) {
 
             $newShow = getShow();
+            $thumbnail = getThumbnail($newShow);
             $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
             $embed->setTitle("::: [bd] now playing ::: $newShow ::" )
                   ->setType($embed::TYPE_RICH)
                   ->setDescription('Tune in: https://www.bassdrive.com/pop-up')
-                  ->setColor('blue');
+                  ->setColor('blue')
+                  ->setThumbnail($thumbnail);
             $message->channel->sendEmbed($embed);
         }
             // Test embed
