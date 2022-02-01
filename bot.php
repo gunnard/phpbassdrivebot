@@ -29,9 +29,6 @@ function clean_string($string) {
   $s = trim($string);
   $s = iconv("UTF-8", "UTF-8//IGNORE", $s); // drop all non utf-8 characters
 
-  // this is some bad utf-8 byte sequence that makes mysql complain - control and formatting i think
-  $s = preg_replace('/(?>[\x00-\x1F]|\xC2[\x80-\x9F]|\xE2[\x80-\x8F]{2}|\xE2\x80[\xA4-\xA8]|\xE2\x81[\x9F-\xAF])/', ' ', $s);
-
   $s = preg_replace('/\s+/', ' ', $s); // reduce all multiple whitespace to a single space
 
   return $s;
@@ -83,7 +80,11 @@ function getShow() {
 
     // close curl resource to free up system resources
     curl_close($ch);
-    $bassdriveShow = clean_string($output[6]);
+    if (isset($output[7])) {
+        $bassdriveShow = clean_string($output[6]) . ' '. clean_string($output[7]);
+    } else {
+        $bassdriveShow = clean_string($output[6]);
+    }
     return $bassdriveShow;
 }
 
@@ -144,6 +145,8 @@ function getThumbnail($show) {
         'Warm Ears',
         'Fuzed Funk',
         'Lab'];
+    $hostNames = ['ben xo', 'dfunk'];
+
     foreach ($showNames as $realName) {
         if (str_contains($show,$realName)) {
             $actualShow = $realName;
@@ -161,13 +164,34 @@ function getThumbnail($show) {
             $thumbnail = $row['flyer'];
         }
     } else {
-        if (str_contains(strtolower($show),"live")) {
-            $thumbnail = "https://unicornriot.ninja/wp-content/uploads/2018/09/LiveChannel334x212v2.png";
-        }else {
-            $thumbnail ="https://cdn.discordapp.com/attachments/918981144207302716/934265946397343815/Bassdrive_TUNE_IN_Blue.jpg";
+        foreach ($hostNames as $host) {
+            echo 'HOSTHOST';
+            echo $show .'--'. $host;
+            if (str_contains(strtolower($show),strtolower($host))) {
+                echo 'PANTS';
+                $actualHost = $host;
+                break;
+            } else {
+                $actualHost = null;
+            }
         }
+        if (isset($actualHost)) {
+            $sql = "SELECT flyer FROM show_info WHERE hostname like '%$actualHost%'";
+            $result = $conn->query($sql);
+            $row = $result->fetch_assoc(); 
+            if ($row['flyer'] != null) {
+                $thumbnail = $row['flyer'];
+            }
+        }
+        if (!isset($thumbnail)) {
+            if (str_contains(strtolower($show),"live")) {
+                $thumbnail = "https://unicornriot.ninja/wp-content/uploads/2018/09/LiveChannel334x212v2.png";
+            }else {
+                $thumbnail ="https://cdn.discordapp.com/attachments/918981144207302716/934265946397343815/Bassdrive_TUNE_IN_Blue.jpg";
+            }
+        }
+        return $thumbnail;
     }
-    return $thumbnail;
 }
 
     //bassdriveInfo=$(curl -X GET http://bassdrive.com:8000/7.html -H "Connection: keep-alive" -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.
