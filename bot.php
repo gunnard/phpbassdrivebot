@@ -1,6 +1,7 @@
 <?php
 
 include __DIR__.'/vendor/autoload.php';
+include 'config.php';
 
 use Discord\Discord;
 use Discord\Parts\Channel\Message;
@@ -12,10 +13,9 @@ use Discord\Parts\Interactions\Interaction;
 use Discord\Builders\MessageBuilder;
 
 $discord = new Discord([
-    'token' => 'OTA3NjkzODMyNTA4OTMyMDk3.YYq5wQ.WxPXBmN50fLTu2EHlSwLK2cgmY8',
+    'token' => $TOKEN,
 ]);
 
-$conn = new mysqli("localhost","ubuntu","!Qaytr3ej","bassdrive");
 
 // Check connection
 if ($conn -> connect_errno) {
@@ -167,7 +167,6 @@ function getThumbnail($show) {
             $thumbnail ="https://cdn.discordapp.com/attachments/918981144207302716/934265946397343815/Bassdrive_TUNE_IN_Blue.jpg";
         }
     }
-    echo "AT THE END";
     return $thumbnail;
 }
 
@@ -235,7 +234,7 @@ $discord->on('ready', function ($discord) {
             $output = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             if($httpCode == 404) {
-                $weatherImage = "https://cdn.guff.com/site_0/media/33000/32179/items/ef345c59c3c6650182a30687.jpg";
+                $weatherImage = "https://previews.123rf.com/images/mousemd/mousemd1710/mousemd171000009/87405336-404-not-found-concept-glitch-style-vector.jpg";
             }else{
                 $weatherImage = "https://wttr.in/$location" . "_0tqp.png";
             }
