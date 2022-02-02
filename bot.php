@@ -145,7 +145,63 @@ function getThumbnail($show) {
         'Warm Ears',
         'Fuzed Funk',
         'Lab'];
-    $hostNames = ['ben xo', 'dfunk'];
+
+    $hostNames = ['Dreazz & Sub:liminal',
+        'Blofeld',
+        'Spim'
+        ,'Melinki'
+        ,'Bank'
+        ,'The Skeptics'
+        ,'Overt1'
+        ,'Rogue State'
+        ,'Wadjit'
+        ,'DJ Andy'
+        ,'Alegria'
+        ,'Sweetpea'
+        ,'Subtext'
+        ,'Ben XO'
+        ,'Sohlman'
+        ,'Ill Omen'
+        ,'Skanka'
+        ,'Promo ZO'
+        ,'Darren Jay & Jazzy'
+        ,'Bryan Gee'
+        ,'Dan Soulsmith'
+        ,'Stunna'
+        ,'Random Movement'
+        ,'EvanTheScientist'
+        ,'Jamal'
+        ,'Method One'
+        ,'Amnesty'
+        ,'Simplification'
+        ,'A-Sides'
+        ,'Jay Rome'
+        ,'Rodney Rolls'
+        ,'DFunk'
+        ,'Ashatack'
+        ,'Optx'
+        ,'Indentation'
+        ,'Operon'
+        ,'AudioDevice and Friends'
+        ,'Donovan Badboy Smith'
+        ,'Jay Dubz'
+        ,'Handy'
+        ,'Squake'
+        ,'Reflect'
+        ,'John Ohms'
+        ,'Spacefunk'
+        ,'Kos.Mos Music'
+        ,'Overfiend'
+        ,'Lamebrane'
+        ,'Schematic'
+        ,'Spacefunk'
+        ,'Buzzy D'
+        ,'Bumblebee'
+        ,'LJHigh'
+        ,'dLo'
+        ,'Elementrix and D.E.D'
+        ,'Jason Magin'
+        ,'Impression'];
 
     foreach ($showNames as $realName) {
         if (str_contains($show,$realName)) {
@@ -165,10 +221,7 @@ function getThumbnail($show) {
         }
     } else {
         foreach ($hostNames as $host) {
-            echo 'HOSTHOST';
-            echo $show .'--'. $host;
             if (str_contains(strtolower($show),strtolower($host))) {
-                echo 'PANTS';
                 $actualHost = $host;
                 break;
             } else {
@@ -190,8 +243,8 @@ function getThumbnail($show) {
                 $thumbnail ="https://cdn.discordapp.com/attachments/918981144207302716/934265946397343815/Bassdrive_TUNE_IN_Blue.jpg";
             }
         }
-        return $thumbnail;
     }
+    return $thumbnail;
 }
 
     //bassdriveInfo=$(curl -X GET http://bassdrive.com:8000/7.html -H "Connection: keep-alive" -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.
@@ -205,9 +258,9 @@ $discord->on('ready', function ($discord) {
         global $currentShow;
 
         $newShow = getShow();
-        echo "-> " . strlen($currentShow) . "---" . strlen($newShow) . "<--\n";
         
         if ($currentShow != $newShow) {
+            echo "-> " . strlen($currentShow) . "---" . strlen($newShow) . "<--\n";
             $currentShow = $newShow;
             $thumbnail = getThumbnail($currentShow);
             $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
