@@ -279,6 +279,7 @@ $discord->on('ready', function ($discord) {
     // Listen for messages.
     $discord->on('message', function ($message, $discord) {
         $weekDays = array('!monday','!tuesday','!wednesday','!thursday','!friday','!saturday','!sunday');
+	$letters = array ('a' => '🇦', 'b'=>'🇧', 'c'=>'🇨', 'd'=>'🇩','e'=>'🇪','f'=>'🇫','g'=>'🇬','h'=>'🇭','i'=>'🇮','j'=>'🇯','k'=>'🇰','l'=>'🇱','m'=>'🇲','n'=>'🇳','o'=>'🇴','p'=>'🇵','q'=>'🇶','r'=>'🇷','s'=>'🇸','t'=>'🇹','u'=>'🇺','v'=>'🇻','w'=>'🇼','x'=>'🇽','y'=>'🇾','z'=>'🇿');
         if (str_contains(strtolower($message->content),'honk') && ! $message->author->bot) {
             $honk = '🦆';
             $message->react($honk)->done(function () {});
@@ -287,6 +288,12 @@ $discord->on('ready', function ($discord) {
         if (str_contains(strtolower($message->content),'locked') && ! $message->author->bot) {
             $lock = '🔒';
             $message->react($lock)->done(function () {});
+        }
+
+        if (str_contains(strtolower($message->content),'biggups') && ! $message->author->bot) {
+            $message->react($letters['b'])->done(function () {});
+            $message->react($letters['o'])->done(function () {});
+            $message->react($letters['h'])->done(function () {});
         }
 
 
