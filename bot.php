@@ -264,7 +264,7 @@ $discord->on('ready', function ($discord) {
             $currentShow = $newShow;
             $thumbnail = getThumbnail($currentShow);
             $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
-            $embed->setTitle("::: [bd] now playing ::: $currentShow ::" )
+            $embed->setTitle("::: [bd] now playing ::: $currentShow :::" )
                   ->setType($embed::TYPE_RICH)
                   ->setDescription('Tune in: https://www.bassdrive.com/pop-up')
                   ->setThumbnail($thumbnail)
@@ -279,6 +279,17 @@ $discord->on('ready', function ($discord) {
     // Listen for messages.
     $discord->on('message', function ($message, $discord) {
         $weekDays = array('!monday','!tuesday','!wednesday','!thursday','!friday','!saturday','!sunday');
+        if (str_contains(strtolower($message->content),'honk') && ! $message->author->bot) {
+            $honk = '🦆';
+            $message->react($honk)->done(function () {});
+        }
+
+        if (str_contains(strtolower($message->content),'locked') && ! $message->author->bot) {
+            $lock = '🔒';
+            $message->react($lock)->done(function () {});
+        }
+
+
         if ($message->content == 'ping' && ! $message->author->bot) {
             // Reply with "pong"
             $message->reply('pong');
@@ -348,7 +359,7 @@ $discord->on('ready', function ($discord) {
             $newShow = getShow();
             $thumbnail = getThumbnail($newShow);
             $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
-            $embed->setTitle("::: [bd] now playing ::: $newShow ::" )
+            $embed->setTitle("::: [bd] now playing ::: $newShow :::" )
                   ->setType($embed::TYPE_RICH)
                   ->setDescription('Tune in: https://www.bassdrive.com/pop-up')
                   ->setColor('blue')
