@@ -57,14 +57,29 @@ $discord->on('ready', function ($discord) {
         $weekDays = array('!monday','!tuesday','!wednesday','!thursday','!friday','!saturday','!sunday');
 	$letters = array ('a' => '🇦', 'b'=>'🇧', 'c'=>'🇨', 'd'=>'🇩','e'=>'🇪','f'=>'🇫','g'=>'🇬','h'=>'🇭','i'=>'🇮','j'=>'🇯','k'=>'🇰','l'=>'🇱','m'=>'🇲','n'=>'🇳','o'=>'🇴','p'=>'🇵','q'=>'🇶','r'=>'🇷','s'=>'🇸','t'=>'🇹','u'=>'🇺','v'=>'🇻','w'=>'🇼','x'=>'🇽','y'=>'🇾','z'=>'🇿');
         if (str_contains(strtolower($message->content),'honk') && ! $message->author->bot) {
-            $honk = '🦆';
+            $honk = '🦤';;
+            $honk2 = '📣';
             $message->react($honk)->done(function () {});
+            $message->react($honk2)->done(function () {});
+        }
+
+        if (str_contains(strtolower($message->content),'clown') && ! $message->author->bot) {
+            $clown = '🤡';
+            $message->react($clown)->done(function () {});
         }
 
         if (str_contains(strtolower($message->content),'locked') && ! $message->author->bot) {
             $lock = '🔒';
             $message->react($lock)->done(function () {});
         }
+
+        if (str_contains(strtolower($message->content),'dubstep') && ! $message->author->bot) {
+            $facepalm = '🤦';
+            $x = '❌';
+            $message->react($facepalm)->done(function () {});
+            $message->react($x)->done(function () {});
+        }
+
 
         if (str_contains(strtolower($message->content),'biggups') && ! $message->author->bot) {
             $message->react($letters['b'])->done(function () {});

@@ -213,6 +213,7 @@ function getThumbnail($show) {
     }
 
     if (isset($actualShow)) {
+        echo 'Actualshow';
         $sql = "SELECT flyer FROM show_info WHERE showname like '%$actualShow%'";
         $result = $conn->query($sql);
         $row = $result->fetch_assoc(); 
@@ -220,6 +221,7 @@ function getThumbnail($show) {
             $thumbnail = $row['flyer'];
         }
     } else {
+        echo 'actualHOST';
         foreach ($hostNames as $host) {
             if (str_contains(strtolower($show),strtolower($host))) {
                 $actualHost = $host;
@@ -236,12 +238,12 @@ function getThumbnail($show) {
                 $thumbnail = $row['flyer'];
             }
         }
-        if (!isset($thumbnail)) {
-            if (str_contains(strtolower($show),"live")) {
-                $thumbnail = "https://unicornriot.ninja/wp-content/uploads/2018/09/LiveChannel334x212v2.png";
-            }else {
-                $thumbnail ="https://cdn.discordapp.com/attachments/918981144207302716/934265946397343815/Bassdrive_TUNE_IN_Blue.jpg";
-            }
+    }
+    if (!isset($thumbnail)) {
+        if (str_contains(strtolower($show),"live")) {
+            $thumbnail = "https://unicornriot.ninja/wp-content/uploads/2018/09/LiveChannel334x212v2.png";
+        }else {
+            $thumbnail ="https://cdn.discordapp.com/attachments/918981144207302716/934265946397343815/Bassdrive_TUNE_IN_Blue.jpg";
         }
     }
     return $thumbnail;
