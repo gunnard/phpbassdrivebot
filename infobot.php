@@ -23,8 +23,6 @@ if ($conn -> connect_errno) {
   exit();
 }
 
-$currentShow = getShow();
-
 function clean_string($string) {
   $s = trim($string);
   $s = iconv("UTF-8", "UTF-8//IGNORE", $s); // drop all non utf-8 characters
@@ -42,7 +40,13 @@ function week_number( $date = 'today' )
 
 
 $discord->on('ready', function ($discord) {
+	global $GUILD_ID;
+	global $NAME;
     echo "Bot is ready!", PHP_EOL;
+    $guild = $discord->guilds[$GUILD_ID];
+    $guild->members[$discord->id]->setNickname($NAME);
+
+
 
     //$discord->getLoop()->addPeriodicTimer(10, function() use ($discord) {
     //});
@@ -68,8 +72,19 @@ $discord->on('ready', function ($discord) {
             $message->react($letters['h'])->done(function () {});
         }
 
+	if (str_contains($message->content,'!seba') && ! $message->author->bot) {
+		$promo = 'https://scontent-atl3-1.xx.fbcdn.net/v/t39.30808-6/273246529_472336101007559_1176083929138564907_n.jpg?_nc_cat=111&ccb=1-5&_nc_sid=8bfeb9&_nc_ohc=RUHihSHEs54AX_QM7-7&_nc_ht=scontent-atl3-1.xx&oh=00_AT_0J_2QVap6ow-ZJ-5BDaBiK9mzE7k4Vs6S35KKlHrCew&oe=62015EF6';
+		$embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
+		$embed->setImage($promo)
+	->setType($embed::TYPE_RICH)
+	->setColor('blue');
+		$message->channel->sendEmbed($embed);
+	}
+
+
+
         if (str_contains($message->content,'!weather') && ! $message->author->bot) {
-            $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
+	$embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
             $weather = explode(' ',$message->content);
             $location = '';
             if (sizeof($weather) > 1) {

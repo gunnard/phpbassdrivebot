@@ -269,7 +269,7 @@ $discord->on('ready', function ($discord) {
                   ->setDescription('Tune in: https://www.bassdrive.com/pop-up')
                   ->setThumbnail($thumbnail)
                   ->setColor('blue');
-            $channel = $discord->getChannel('700507571550945281');
+            $channel = $discord->getChannel('766141517005455396');
             $channel->sendMessage(MessageBuilder::new()
                 ->addEmbed($embed));
         }
