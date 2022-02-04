@@ -68,9 +68,23 @@ $discord->on('ready', function ($discord) {
             $message->react($clown)->done(function () {});
         }
 
+        if (str_contains(strtolower($message->content),'vibes') && ! $message->author->bot) {
+            $message->react($letters['v'])->done(function () {});
+            $message->react($letters['i'])->done(function () {});
+            $message->react($letters['b'])->done(function () {});
+            $message->react($letters['e'])->done(function () {});
+            $message->react($letters['s'])->done(function () {});
+        }
+
         if (str_contains(strtolower($message->content),'locked') && ! $message->author->bot) {
             $lock = '🔒';
             $message->react($lock)->done(function () {});
+            $message->react($letters['l'])->done(function () {});
+            $message->react($letters['o'])->done(function () {});
+            $message->react($letters['c'])->done(function () {});
+            $message->react($letters['k'])->done(function () {});
+            $message->react($letters['e'])->done(function () {});
+            $message->react($letters['d'])->done(function () {});
         }
 
         if (str_contains(strtolower($message->content),'dubstep') && ! $message->author->bot) {
@@ -82,6 +96,18 @@ $discord->on('ready', function ($discord) {
 
 
         if (str_contains(strtolower($message->content),'biggups') && ! $message->author->bot) {
+            $message->react($letters['b'])->done(function () {});
+            $message->react($letters['o'])->done(function () {});
+            $message->react($letters['h'])->done(function () {});
+        }
+
+        if (str_contains(strtolower($message->content),'bigup') && ! $message->author->bot) {
+            $message->react($letters['b'])->done(function () {});
+            $message->react($letters['o'])->done(function () {});
+            $message->react($letters['h'])->done(function () {});
+        }
+
+        if (str_contains(strtolower($message->content),'big up') && ! $message->author->bot) {
             $message->react($letters['b'])->done(function () {});
             $message->react($letters['o'])->done(function () {});
             $message->react($letters['h'])->done(function () {});
