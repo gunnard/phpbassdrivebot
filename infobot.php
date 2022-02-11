@@ -56,12 +56,21 @@ $discord->on('ready', function ($discord) {
     $discord->on('message', function ($message, $discord) {
         $weekDays = array('!monday','!tuesday','!wednesday','!thursday','!friday','!saturday','!sunday');
 	$letters = array ('a' => '🇦', 'b'=>'🇧', 'c'=>'🇨', 'd'=>'🇩','e'=>'🇪','f'=>'🇫','g'=>'🇬','h'=>'🇭','i'=>'🇮','j'=>'🇯','k'=>'🇰','l'=>'🇱','m'=>'🇲','n'=>'🇳','o'=>'🇴','p'=>'🇵','q'=>'🇶','r'=>'🇷','s'=>'🇸','t'=>'🇹','u'=>'🇺','v'=>'🇻','w'=>'🇼','x'=>'🇽','y'=>'🇾','z'=>'🇿');
+	
         if (str_contains(strtolower($message->content),'honk') && ! $message->author->bot) {
             $honk = '🦤';;
             $honk2 = '📣';
             $message->react($honk)->done(function () {});
             $message->react($honk2)->done(function () {});
-        }
+	}
+
+	$kickWords = ['dubstep','infobot','live?'];
+        if (in_array(strtolower($message->content),$kickWords) && ! $message->author->bot) {
+		$guild = $discord->guilds->get('id', $message->guild_id);
+		$message->reply("Hey  ".$message->author->username ." ! Watch your mouth!");
+		//message->reply($message->author->id)
+		$guild->members->kick($message->member);
+	}
 
         if (str_contains(strtolower($message->content),'clown') && ! $message->author->bot) {
             $clown = '🤡';
@@ -113,7 +122,7 @@ $discord->on('ready', function ($discord) {
             $message->react($letters['h'])->done(function () {});
         }
 
-	if (str_contains($message->content,'!seba') && ! $message->author->bot) {
+	/*if (str_contains($message->content,'!seba') && ! $message->author->bot) {
 		$promo = 'https://scontent-atl3-1.xx.fbcdn.net/v/t39.30808-6/273246529_472336101007559_1176083929138564907_n.jpg?_nc_cat=111&ccb=1-5&_nc_sid=8bfeb9&_nc_ohc=RUHihSHEs54AX_QM7-7&_nc_ht=scontent-atl3-1.xx&oh=00_AT_0J_2QVap6ow-ZJ-5BDaBiK9mzE7k4Vs6S35KKlHrCew&oe=62015EF6';
 		$embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
 		$embed->setImage($promo)
@@ -121,8 +130,12 @@ $discord->on('ready', function ($discord) {
 	->setColor('blue');
 		$message->channel->sendEmbed($embed);
 	}
+	 */
 
 
+	if (str_contains($message->content,'!testkick') && ! $message->author->bot) {
+		echo "{$message->author->getPermissions}: {$message->content}",PHP_EOL;
+	}
 
         if (str_contains($message->content,'!weather') && ! $message->author->bot) {
 	$embed = $discord->factory(\Discord\Parts\Embed\Embed::class);

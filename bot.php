@@ -24,26 +24,23 @@ if ($conn -> connect_errno) {
 }
 
 $currentShow = getShow();
+$currentTwitch = getTwitch();
 
 function clean_string($string) {
   $s = trim($string);
   $s = iconv("UTF-8", "UTF-8//IGNORE", $s); // drop all non utf-8 characters
-
   $s = preg_replace('/\s+/', ' ', $s); // reduce all multiple whitespace to a single space
-
   return $s;
 }
 
 function week_number( $date = 'today' )
 {
     return ceil( date( 'j', strtotime( $date ) ) / 7 );
-
 }
 
 function getSchedule($day) {
     global $conn;
     $week = week_number();
-    
     $day = ucfirst($day);
     $sql = "SELECT * FROM show_info WHERE day='$day' and wk$week=1";
     $result = $conn->query($sql);
@@ -59,6 +56,75 @@ function getSchedule($day) {
     } else {
         echo $sql;
     }
+}
+
+function getTwitch() {
+	$clientId = 'oiaj85u4lww35nv6eco0yrq5g3zibv';
+
+	$tokenAPI = 'https://id.twitch.tv/oauth2/token
+		--data-urlencode
+		?grant_type=refresh_token
+		&refresh_token=eyJfaWQmNzMtNGCJ9%6VFV5LNrZFUj8oU231/3Aj
+		&client_id=fooid
+		&client_secret=barbazsecret';
+
+	$data = array (
+		'client_id' => $clientId,
+		'client_secret' => '1mb2v2fciec6b6z4hck8tkozvvhjf8',
+		'grant_type' => 'client_credentials'
+	);
+
+	$post_data = json_encode($data);
+	$crl = curl_init('https://id.twitch.tv/oauth2/token');
+	curl_setopt($crl, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($crl, CURLINFO_HEADER_OUT, true);
+	curl_setopt($crl, CURLOPT_POST, true);
+	curl_setopt($crl, CURLOPT_POSTFIELDS, $post_data);
+	curl_setopt($crl, CURLOPT_HTTPHEADER, array(
+		'Content-Type: application/json'
+	));
+	$result = curl_exec($crl);
+	$result = json_decode($result);
+	curl_close($crl);
+	$ch = curl_init();
+
+	$data = array (
+		'channel' => 'bassdrive_radio'
+	);
+
+	//$twitchDjs = ['natereflect','amnestydj','sohl_man','powerrinse','barbarousking'];
+	$twitchDjs = ['natereflect','amnestydj','sohl_man','powerrinse','illomendnb'];
+	$videosApi = 'https://api.twitch.tv/helix/streams?user_login=';
+
+	$twitchLive = null;
+	foreach ($twitchDjs as $twitchDj) {
+		curl_setopt_array($ch, array(
+			CURLOPT_HTTPHEADER => array(
+				'Client-ID: ' . $clientId,
+				'Authorization: Bearer '. $result->access_token,
+			), 
+			CURLOPT_SSL_VERIFYPEER => false,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_URL => $videosApi . $twitchDj,
+		));
+
+		$response = curl_exec($ch);
+		curl_close($ch);
+
+		$jsonResponse = json_decode($response, TRUE);
+		if (isset($jsonResponse['data'])) {
+			if (count($jsonResponse['data']) != 0) {
+				$twitchLive = $twitchDj;
+				break;
+			}
+		}
+
+	}
+	if ($twitchLive) {
+		return $twitchLive;
+	} else {
+		return null;
+	}
 }
 
 function getShow() {
@@ -143,7 +209,7 @@ function getThumbnail($show) {
         'High Defnition',
         'Strictly Science Mixshow',
         'Warm Ears',
-        'Fuzed Funk',
+        'FuzedFunk',
         'Lab'];
 
     $hostNames = ['Dreazz & Sub:liminal',
@@ -254,12 +320,18 @@ function getThumbnail($show) {
  //-H "Accept-Language: en-US,en;q=0.9" -H "Accept-Encoding: gzip, deflate")
 
 $discord->on('ready', function ($discord) {
-    echo "Bot is ready!", PHP_EOL;
+	global $GUILD_ID;
+	global $NAME;
+	echo "Bot is ready!", PHP_EOL;
+	$guild = $discord->guilds[$GUILD_ID];
+	$guild->members[$discord->id]->setNickname($NAME);
 
     $discord->getLoop()->addPeriodicTimer(10, function() use ($discord) {
         global $currentShow;
+	global $currentTwitch;
 
         $newShow = getShow();
+	$newTwitch = getTwitch();
         
         if ($currentShow != $newShow) {
             echo "-> " . strlen($currentShow) . "---" . strlen($newShow) . "<--\n";
@@ -275,6 +347,19 @@ $discord->on('ready', function ($discord) {
             $channel->sendMessage(MessageBuilder::new()
                 ->addEmbed($embed));
         }
+
+	echo "=====>$currentTwitch (current) $newTwitch (newTwitch) <=====\n";
+	if ($currentTwitch != $newTwitch && $currentTwitch != null) {
+		$output = null;
+		$retval = null;
+		if ($newTwitch) {
+			$currentTwitch = $newTwitch;
+			echo "=====>$newTwitch <=====\n";
+			exec("node ../twitchChatBot/bot.js host $newTwitch",$output, $retval);
+		} else {
+			exec("node ../twitchChatBot/bot.js unhost",$output, $retval);
+		}
+	}
     });
 
 
