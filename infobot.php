@@ -16,7 +16,6 @@ $discord = new Discord([
     'token' => $TOKEN,
 ]);
 
-
 // Check connection
 if ($conn -> connect_errno) {
   echo "Failed to connect to MySQL: " . $conn -> connect_error;
@@ -26,27 +25,21 @@ if ($conn -> connect_errno) {
 function clean_string($string) {
   $s = trim($string);
   $s = iconv("UTF-8", "UTF-8//IGNORE", $s); // drop all non utf-8 characters
-
   $s = preg_replace('/\s+/', ' ', $s); // reduce all multiple whitespace to a single space
-
   return $s;
 }
 
 function week_number( $date = 'today' )
 {
     return ceil( date( 'j', strtotime( $date ) ) / 7 );
-
 }
-
 
 $discord->on('ready', function ($discord) {
 	global $GUILD_ID;
 	global $NAME;
-    echo "Bot is ready!", PHP_EOL;
-    $guild = $discord->guilds[$GUILD_ID];
-    $guild->members[$discord->id]->setNickname($NAME);
-
-
+	echo "Bot is ready!", PHP_EOL;
+	$guild = $discord->guilds[$GUILD_ID];
+	$guild->members[$discord->id]->setNickname($NAME);
 
     //$discord->getLoop()->addPeriodicTimer(10, function() use ($discord) {
     //});
@@ -64,18 +57,71 @@ $discord->on('ready', function ($discord) {
             $message->react($honk2)->done(function () {});
 	}
 
-	$kickWords = ['dubstep','infobot','live?'];
-        if (in_array(strtolower($message->content),$kickWords) && ! $message->author->bot) {
-		$guild = $discord->guilds->get('id', $message->guild_id);
-		$message->reply("Hey  ".$message->author->username ." ! Watch your mouth!");
-		//message->reply($message->author->id)
-		$guild->members->kick($message->member);
+	$kickWords = ['pendulum','dubstep','infobot','live?'];
+	$messageWords = explode(" ",strtolower($message->content));
+	foreach ($messageWords as $messageWord) {	
+		if (in_array($messageWord,$kickWords) && ! $message->author->bot) {
+			$guild = $discord->guilds->get('id', $message->guild_id);
+			$message->reply("Hey  ".$message->author->username ." ! Watch your mouth!");
+			//message->reply($message->author->id)
+			$x = '❌';
+			$message->react($x)->done(function () {});
+			//	$guild->members->kick($message->member);
+		}
 	}
 
         if (str_contains(strtolower($message->content),'clown') && ! $message->author->bot) {
             $clown = '🤡';
             $message->react($clown)->done(function () {});
         }
+
+        if (str_contains(strtolower($message->content),'junglist?') && ! $message->author->bot) {
+            $beard = 'Lol, I am a beard!';
+            $message->reply($beard);
+        }
+
+        if (strtolower($message->content) =='b0h b0h b0h' && ! $message->author->bot) {
+	    $boh = 'I heard b0h b0h b0h was h0b h0b h0b';
+            $message->react($letters['h'])->done(function () {});
+            $message->react($letters['o'])->done(function () {});
+            $message->react($letters['b'])->done(function () {});
+            $message->reply($boh);
+        }
+
+        if (strtolower($message->content) =='do a flip' && ! $message->author->bot) {
+	    $flip = '/( .□.) ︵╰(゜益゜)╯︵ /(.□. /)';
+            $message->reply($flip);
+        }
+
+        if (strtolower($message->content) =='flip a table' && ! $message->author->bot) {
+		$table ="(ﾉ´□｀)ﾉ ┫:･’∵:.┻┻:･’.:┣∵･:. ┳┳";
+		$message->reply($table);
+        }
+
+	$tuneId = ['tune id','track id'];
+	$trackIdResponses = ['Track ID: Wet Arena - Pimple Bee', 'due to delinquent account tune ID privileges will be revoked in 30 days unless payment is received'];
+	$messageWords = explode(" ",strtolower($message->content));
+	foreach ($messageWords as $messageWord) {	
+		if (in_array($messageWord, $tuneId) && ! $message->author->bot) {
+			$randResponse = mt_rand(0,count($tuneId)-1);
+			$message->reply($trackIdResponses[$randResponse]);
+		}
+        }
+
+
+	$jokes = ['yow','!hit'];
+	$messageWords = explode(" ",strtolower($message->content));
+	foreach ($messageWords as $messageWord) {	
+		if (in_array($messageWord, $jokes) && ! $message->author->bot) {
+			global $conn;
+			$sql = "SELECT joke FROM jokes order by rand() limit 1";
+			$result = $conn->query($sql);
+			$row = $result->fetch_assoc();
+			if ($row['joke'] != null) {
+				$message->reply($row['joke']);
+			}
+		}
+	}
 
         if (str_contains(strtolower($message->content),'vibes') && ! $message->author->bot) {
             $message->react($letters['v'])->done(function () {});
@@ -96,31 +142,17 @@ $discord->on('ready', function ($discord) {
             $message->react($letters['d'])->done(function () {});
         }
 
-        if (str_contains(strtolower($message->content),'dubstep') && ! $message->author->bot) {
-            $facepalm = '🤦';
-            $x = '❌';
-            $message->react($facepalm)->done(function () {});
-            $message->react($x)->done(function () {});
-        }
+	$biggupsWords = ['biggup','biggups','biggupz','big up','bigup','bigups'];
+	$messageWords = explode(" ",strtolower($message->content));
+	foreach ($messageWords as $messageWord) {	
+		if (in_array($messageWord, $biggupsWords) && ! $message->author->bot) {
+			$message->react($letters['b'])->done(function () {});
+			$message->react($letters['o'])->done(function () {});
+			$message->react($letters['h'])->done(function () {});
+			break;
+		}
+	}
 
-
-        if (str_contains(strtolower($message->content),'biggups') && ! $message->author->bot) {
-            $message->react($letters['b'])->done(function () {});
-            $message->react($letters['o'])->done(function () {});
-            $message->react($letters['h'])->done(function () {});
-        }
-
-        if (str_contains(strtolower($message->content),'bigup') && ! $message->author->bot) {
-            $message->react($letters['b'])->done(function () {});
-            $message->react($letters['o'])->done(function () {});
-            $message->react($letters['h'])->done(function () {});
-        }
-
-        if (str_contains(strtolower($message->content),'big up') && ! $message->author->bot) {
-            $message->react($letters['b'])->done(function () {});
-            $message->react($letters['o'])->done(function () {});
-            $message->react($letters['h'])->done(function () {});
-        }
 
 	/*if (str_contains($message->content,'!seba') && ! $message->author->bot) {
 		$promo = 'https://scontent-atl3-1.xx.fbcdn.net/v/t39.30808-6/273246529_472336101007559_1176083929138564907_n.jpg?_nc_cat=111&ccb=1-5&_nc_sid=8bfeb9&_nc_ohc=RUHihSHEs54AX_QM7-7&_nc_ht=scontent-atl3-1.xx&oh=00_AT_0J_2QVap6ow-ZJ-5BDaBiK9mzE7k4Vs6S35KKlHrCew&oe=62015EF6';
@@ -132,10 +164,6 @@ $discord->on('ready', function ($discord) {
 	}
 	 */
 
-
-	if (str_contains($message->content,'!testkick') && ! $message->author->bot) {
-		echo "{$message->author->getPermissions}: {$message->content}",PHP_EOL;
-	}
 
         if (str_contains($message->content,'!weather') && ! $message->author->bot) {
 	$embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
@@ -176,8 +204,7 @@ $discord->on('ready', function ($discord) {
                   ->setColor('blue');
             $message->channel->sendEmbed($embed);
         }
-
-    });
+ });
 });
 
 $discord->run();
