@@ -69,6 +69,13 @@ $discord->on('ready', function ($discord) {
 			//	$guild->members->kick($message->member);
 		}
 	}
+	
+        if (str_contains(strtolower($message->content),'testkickword') && ! $message->author->bot) {
+		$x = '❌';
+		$message->react($x)->done(function () {});
+		$message->channel->setPermissions($message->member, [], [10], 'Badmouthing');
+
+        }
 
         if (str_contains(strtolower($message->content),'clown') && ! $message->author->bot) {
             $clown = '🤡';
@@ -177,34 +184,50 @@ $discord->on('ready', function ($discord) {
             } else {
                 $location = $weather[1];
             }
+
             $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, "https://wttr.in/$location" . "_0tqp.png");
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                'Connection: Keep-Alive',
-                'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.',
-                'Upgrade-Insecure-Requests: 1',
-                'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                'Accept-Language: en-US,en;q=0.9',
-                'Accept-Encoding: gzip, deflate'
-            ));
-            // $output contains the output string
-            $output = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            if($httpCode == 404) {
-                $weatherImage = "https://previews.123rf.com/images/mousemd/mousemd1710/mousemd171000009/87405336-404-not-found-concept-glitch-style-vector.jpg";
-            }else{
-                $weatherImage = "https://wttr.in/$location" . "_0tqp.png";
-            }
-            curl_close($ch);
-            #$embed->setImage("https://wttr.in/$location" . "_0tqp.png")
-            $embed->setImage($weatherImage)
-                  ->setType($embed::TYPE_RICH)
-                  ->setFooter("Perfect Weather for BassDrive")
-                  ->setColor('blue');
-            $message->channel->sendEmbed($embed);
-        }
- });
+	    $newLocation = filter_var($location,FILTER_SANITIZE_SPECIAL_CHARS);
+	    $newLocation = filter_var($newLocation,FILTER_SANITIZE_STRING);
+	    $badPlaces = ['/../','/./','/','/.../'];
+	    $bad = false;
+	    foreach ($badPlaces as $badPlace) {
+		    if (strpos($newLocation,$badPlace)) {
+			    $bad = true;
+			    $message->reply('No haxing plz');
+			    break;
+		    }
+	    }
+	    if (!$bad) {
+		    curl_setopt($ch, CURLOPT_URL, "https://wttr.in/$location" . "_0tqp.png");
+		    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+		    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
+		    curl_setopt($ch, CURLOPT_TIMEOUT, 10); //timeout in seconds
+		    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+			    'Connection: Keep-Alive',
+			    'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.',
+			    'Upgrade-Insecure-Requests: 1',
+			    'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+			    'Accept-Language: en-US,en;q=0.9',
+			    'Accept-Encoding: gzip, deflate'
+		    ));
+		    // $output contains the output string
+		    $output = curl_exec($ch);
+		    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		    if($httpCode == 404) {
+			    $weatherImage = "https://previews.123rf.com/images/mousemd/mousemd1710/mousemd171000009/87405336-404-not-found-concept-glitch-style-vector.jpg";
+		    }else{
+			    $weatherImage = "https://wttr.in/$location" . "_0tqp.png";
+		    }
+		    curl_close($ch);
+		    #$embed->setImage("https://wttr.in/$location" . "_0tqp.png")
+		    $embed->setImage($weatherImage)
+	    ->setType($embed::TYPE_RICH)
+	    ->setFooter("Perfect Weather for BassDrive")
+	    ->setColor('blue');
+		    $message->channel->sendEmbed($embed);
+	    }
+	}
+    });
 });
 
 $discord->run();

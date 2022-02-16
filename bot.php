@@ -349,6 +349,7 @@ $discord->on('ready', function ($discord) {
         }
 
 	echo "=====>$currentTwitch (current) $newTwitch (newTwitch) <=====\n";
+	echo "=====>$currentShow (current) $newShow (newShow) <=====\n";
 	if ($currentTwitch != $newTwitch && $currentTwitch != null) {
 		$output = null;
 		$retval = null;
@@ -386,6 +387,34 @@ $discord->on('ready', function ($discord) {
                   $embed->setFooter('*All times CT and are subject to change. (week ' . $theWeek . ')');
             $message->channel->sendEmbed($embed);
         }
+
+        if ($message->content == '!pls' && ! $message->author->bot) {
+            $newShow = getShow();
+            $thumbnail = getThumbnail($newShow);
+            $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
+            $embed->setTitle("::: [bd] now playing ::: $newShow :::" )
+                  ->setType($embed::TYPE_RICH)
+                  ->setDescription('Tune in: https://www.bassdrive.com/pop-up')
+		  ->setColor('blue');
+	    $embed->addField([
+		    'name' => "128k High grade",
+		    'value' => "http://bassdrive.com/bassdrive.m3u",
+		    'inline' => false,
+	    ]);
+	    $embed->addField([
+		    'name' => "56k Mid grade",
+		    'value' => "http://bassdrive.com/bassdrive6.m3u",
+		    'inline' => false,
+	    ]);
+	    $embed->addField([
+		    'name' => "AAC+",
+		    'value' => "http://bassdrive.com/bassdrive3.m3u",
+		    'inline' => false,
+	    ]);
+	    $embed->setThumbnail($thumbnail);
+            $message->channel->sendEmbed($embed);
+        }
+
         if ($message->content == '!nowplaying' && ! $message->author->bot) {
 
             $newShow = getShow();
