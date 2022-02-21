@@ -59,38 +59,13 @@ function getSchedule($day) {
 }
 
 function getTwitch() {
-	$clientId = 'oiaj85u4lww35nv6eco0yrq5g3zibv';
-
-	$tokenAPI = 'https://id.twitch.tv/oauth2/token
-		--data-urlencode
-		?grant_type=refresh_token
-		&refresh_token=eyJfaWQmNzMtNGCJ9%6VFV5LNrZFUj8oU231/3Aj
-		&client_id=fooid
-		&client_secret=barbazsecret';
-
-	$data = array (
-		'client_id' => $clientId,
-		'client_secret' => '1mb2v2fciec6b6z4hck8tkozvvhjf8',
-		'grant_type' => 'client_credentials'
-	);
-
-	$post_data = json_encode($data);
-	$crl = curl_init('https://id.twitch.tv/oauth2/token');
-	curl_setopt($crl, CURLOPT_RETURNTRANSFER, true);
-	curl_setopt($crl, CURLINFO_HEADER_OUT, true);
-	curl_setopt($crl, CURLOPT_POST, true);
-	curl_setopt($crl, CURLOPT_POSTFIELDS, $post_data);
-	curl_setopt($crl, CURLOPT_HTTPHEADER, array(
-		'Content-Type: application/json'
-	));
-	$result = curl_exec($crl);
-	$result = json_decode($result);
-	curl_close($crl);
 	$ch = curl_init();
 
 	$data = array (
 		'channel' => 'bassdrive_radio'
 	);
+	$access_token = 'k0tsql436p27fk0c1ste4fhdwxesxv';
+	$clientId = 'oiaj85u4lww35nv6eco0yrq5g3zibv';
 
 	//$twitchDjs = ['natereflect','amnestydj','sohl_man','powerrinse','barbarousking'];
 	$twitchDjs = ['natereflect','amnestydj','sohl_man','powerrinse','illomendnb'];
@@ -101,7 +76,7 @@ function getTwitch() {
 		curl_setopt_array($ch, array(
 			CURLOPT_HTTPHEADER => array(
 				'Client-ID: ' . $clientId,
-				'Authorization: Bearer '. $result->access_token,
+				'Authorization: Bearer '. $access_token ,
 			), 
 			CURLOPT_SSL_VERIFYPEER => false,
 			CURLOPT_RETURNTRANSFER => true,
@@ -120,6 +95,7 @@ function getTwitch() {
 		}
 
 	}
+	//var_dump($twitchLive);
 	if ($twitchLive) {
 		return $twitchLive;
 	} else {
@@ -356,9 +332,10 @@ $discord->on('ready', function ($discord) {
 		if ($newTwitch) {
 			$currentTwitch = $newTwitch;
 			echo "=====>$newTwitch <=====\n";
-			exec("node ../twitchChatBot/bot.js host $newTwitch",$output, $retval);
+			exec("node /home/section31/code/twitchChatBot/bot.js host $newTwitch",$output,$retval);
 		} else {
-			exec("node ../twitchChatBot/bot.js unhost",$output, $retval);
+			exec("node /home/section31/code/twitchChatBot/bot.js unhost",$output,$retval);
+			$currentTwitch = null;
 		}
 	}
     });
@@ -397,7 +374,7 @@ $discord->on('ready', function ($discord) {
                   ->setDescription('Tune in: https://www.bassdrive.com/pop-up')
 		  ->setColor('blue');
 	    $embed->addField([
-		    'name' => "128k High grade",
+		    'name' => "192k High grade",
 		    'value' => "http://bassdrive.com/bassdrive.m3u",
 		    'inline' => false,
 	    ]);

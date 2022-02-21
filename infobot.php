@@ -12,6 +12,8 @@ use Discord\WebSockets\Event;
 use Discord\Parts\Interactions\Interaction;
 use Discord\Builders\MessageBuilder;
 
+date_default_timezone_set('America/chicago');
+
 $discord = new Discord([
     'token' => $TOKEN,
 ]);
@@ -82,6 +84,11 @@ $discord->on('ready', function ($discord) {
             $message->react($clown)->done(function () {});
         }
 
+        if (str_contains(strtolower($message->content),'!date') && ! $message->author->bot) {
+	    $theDate = "Current Bassdrive time is: " . date("l") ." ". date("h:i:s a")." ". date("Y-m-d");
+            $message->reply($theDate)->done(function () {});
+        }
+
         if (str_contains(strtolower($message->content),'junglist?') && ! $message->author->bot) {
             $beard = 'Lol, I am a beard!';
             $message->reply($beard);
@@ -104,16 +111,27 @@ $discord->on('ready', function ($discord) {
 		$table ="(ﾉ´□｀)ﾉ ┫:･’∵:.┻┻:･’.:┣∵･:. ┳┳";
 		$message->reply($table);
         }
-
-	$tuneId = ['tune id','track id'];
-	$trackIdResponses = ['Track ID: Wet Arena - Pimple Bee', 'due to delinquent account tune ID privileges will be revoked in 30 days unless payment is received'];
-	$messageWords = explode(" ",strtolower($message->content));
-	foreach ($messageWords as $messageWord) {	
-		if (in_array($messageWord, $tuneId) && ! $message->author->bot) {
-			$randResponse = mt_rand(0,count($tuneId)-1);
-			$message->reply($trackIdResponses[$randResponse]);
-		}
+	
+        if (strtolower($message->content) =='yo yo yo' && ! $message->author->bot) {
+		$mtv ="I heard yo yo yo was MTV Raps!";
+		$message->reply($mtv);
         }
+
+        if (strtolower($message->content) =='you guys' && ! $message->author->bot) {
+		$youGuys ="you guys are insane";
+		$message->reply($youGuys);
+        }
+
+	$trackIdResponses = ['Track ID: Wet Arena - Pimple Bee', 'due to delinquent account tune ID privileges will be revoked in 30 days unless payment is received'];
+	if (str_contains(strtolower($message->content),'tune id') && ! $message->author->bot) { 
+		$randResponse = mt_rand(0,count($trackIdResponses)-1);
+		$message->reply($trackIdResponses[$randResponse]);
+	}
+	if (str_contains(strtolower($message->content),'track id') && ! $message->author->bot) { 
+		$randResponse = mt_rand(0,count($trackIdResponses)-1);
+		$message->reply($trackIdResponses[$randResponse]);
+	}
+    
 
 
 	$jokes = ['yow','!hit'];
@@ -123,9 +141,14 @@ $discord->on('ready', function ($discord) {
 			global $conn;
 			$sql = "SELECT joke FROM jokes order by rand() limit 1";
 			$result = $conn->query($sql);
-			$row = $result->fetch_assoc();
-			if ($row['joke'] != null) {
-				$message->reply($row['joke']);
+			if ($result) {
+				$row = $result->fetch_assoc();
+				if ($row['joke'] != null) {
+					$message->reply($row['joke']);
+				}
+			} else {
+				$message->reply("hmmm, something went wrong");
+
 			}
 		}
 	}
