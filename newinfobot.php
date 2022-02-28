@@ -64,6 +64,23 @@ $discord->on('ready', function ($discord) {
         $weekDays = array('!monday','!tuesday','!wednesday','!thursday','!friday','!saturday','!sunday');
 	$letters = array ('a' => '🇦', 'b'=>'🇧', 'c'=>'🇨', 'd'=>'🇩','e'=>'🇪','f'=>'🇫','g'=>'🇬','h'=>'🇭','i'=>'🇮','j'=>'🇯','k'=>'🇰','l'=>'🇱','m'=>'🇲','n'=>'🇳','o'=>'🇴','p'=>'🇵','q'=>'🇶','r'=>'🇷','s'=>'🇸','t'=>'🇹','u'=>'🇺','v'=>'🇻','w'=>'🇼','x'=>'🇽','y'=>'🇾','z'=>'🇿');
 	
+	if ($message->content && ! $message->author->bot) {
+		global $conn;
+		$userName = filter_var($message->author->username,FILTER_SANITIZE_STRING);
+		$theMessage = filter_var($message->content,FILTER_SANITIZE_STRING);
+		$lowName = strtolower($userName);
+		$sql = "SELECT * from last_seen where LOWER(username)='$lowName'";
+		$result = $conn->query($sql);
+		if ($row = $result->fetch_assoc()) {
+			$sql = "update last_seen set the_message='$theMessage' where id={$row['id']}";
+			$result = $conn->query($sql);
+		} else {
+			$updated_at = date("D d-M-Y h:i:sa");
+			$sql = "INSERT INTO last_seen (username, the_message, updated_at) VALUES ('$userName', '$theMessage', '$updated_at')";
+			$result = $conn->query($sql);
+		}
+	}
+
         if (str_contains(strtolower($message->content),'honk') && ! $message->author->bot) {
 	    wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
             $honk = '🦤';;
@@ -225,10 +242,33 @@ $discord->on('ready', function ($discord) {
 	 */
 
 
-        if (str_contains($message->content,'!weather') && ! $message->author->bot) {
+	if (str_contains($message->content,'!seen') && ! $message->author->bot) {
 		wh_log("[ {$message->author->username} : $message->content " . date("D d-M-Y h:i:sa") ." ]");
-	$embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
-            $weather = explode(' ',$message->content);
+		$seenUser = explode(' ',$message->content);
+		$userSeen = $seenUser[1]; 
+		$userSeen = filter_var($userSeen,FILTER_SANITIZE_SPECIAL_CHARS);
+		$userSeen = filter_var($userSeen,FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
+		$lowUser = strtolower($userSeen);
+		if (isset($lowUser)) {
+			if ($lowUser == '') {
+				$message->reply("sorry {$message->author->username}, but I can't do that.");
+			} else {
+				$sql = "SELECT * from last_seen where LOWER(username)='$lowUser'";
+				$result = $conn->query($sql);
+				if ($row = $result->fetch_assoc()) {
+					$message->reply($row['username'] ." was last seen on {$row['updated_at']}, saying: {$row['the_message']}");
+				} else {
+					$message->reply("sorry {$message->author->username}, I don't have anything for $userSeen");
+				}
+			}
+		}
+	}
+
+
+        if (str_contains($message->content,'!weather') && ! $message->author->bot) {
+            wh_log("[ {$message->author->username} : $message->content " . date("D d-M-Y h:i:sa") ." ]");
+	    $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
+	    $weather = explode(' ',$message->content);
             $location = '';
             if (sizeof($weather) > 1) {
                 for ($x=1; $x<sizeof($weather); $x++) {

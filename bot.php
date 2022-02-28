@@ -16,6 +16,20 @@ $discord = new Discord([
     'token' => $TOKEN,
 ]);
 
+date_default_timezone_set('America/chicago');
+
+function wh_log($log_msg)
+{
+    $log_filename = "log";
+    if (!file_exists($log_filename)) 
+    {
+        // create directory/folder uploads.
+        mkdir($log_filename, 0777, true);
+    }
+    $log_file_data = $log_filename.'/log_' . date('d-M-Y') . '.log';
+    // if you don't add `FILE_APPEND`, the file will be erased each time you add a log
+    file_put_contents($log_file_data, $log_msg . "\n", FILE_APPEND);
+} 
 
 // Check connection
 if ($conn -> connect_errno) {
@@ -60,7 +74,6 @@ function getSchedule($day) {
 
 function getTwitch() {
 	$ch = curl_init();
-
 	$data = array (
 		'channel' => 'bassdrive_radio'
 	);
@@ -298,7 +311,7 @@ function getThumbnail($show) {
 $discord->on('ready', function ($discord) {
 	global $GUILD_ID;
 	global $NAME;
-	echo "Bot is ready!", PHP_EOL;
+	echo "$NAME is ready!", PHP_EOL;
 	$guild = $discord->guilds[$GUILD_ID];
 	$guild->members[$discord->id]->setNickname($NAME);
 
@@ -310,7 +323,8 @@ $discord->on('ready', function ($discord) {
 	$newTwitch = getTwitch();
         
         if ($currentShow != $newShow) {
-            echo "-> " . strlen($currentShow) . "---" . strlen($newShow) . "<--\n";
+            //echo "-> " . strlen($currentShow) . "---" . strlen($newShow) . "<--\n";
+	    wh_log("[ NEW SHOW {$newShow} " . date("D d-M-Y h:i:sa") ." ]"); 
             $currentShow = $newShow;
             $thumbnail = getThumbnail($currentShow);
             $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
@@ -324,8 +338,8 @@ $discord->on('ready', function ($discord) {
                 ->addEmbed($embed));
         }
 
-	echo "=====>$currentTwitch (current) $newTwitch (newTwitch) <=====\n";
-	echo "=====>$currentShow (current) $newShow (newShow) <=====\n";
+	//echo "=====>$currentTwitch (current) $newTwitch (newTwitch) <=====\n";
+	//echo "=====>$currentShow (current) $newShow (newShow) <=====\n";
 	if ($currentTwitch != $newTwitch && $currentTwitch != null) {
 		$output = null;
 		$retval = null;
@@ -346,6 +360,7 @@ $discord->on('ready', function ($discord) {
         $weekDays = array('!monday','!tuesday','!wednesday','!thursday','!friday','!saturday','!sunday');
 
         if (in_array(strtolower($message->content),$weekDays) && ! $message->author->bot) {
+	    wh_log("[ Bassdrive Bot - {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]"); 
             $theDay = ltrim(strtolower($message->content),'!');
             $theSchedule = getSchedule($theDay);
             $theWeek = week_number();
@@ -366,6 +381,7 @@ $discord->on('ready', function ($discord) {
         }
 
         if ($message->content == '!pls' && ! $message->author->bot) {
+	    wh_log("[ Bassdrive Bot - {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]"); 
             $newShow = getShow();
             $thumbnail = getThumbnail($newShow);
             $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
@@ -393,7 +409,7 @@ $discord->on('ready', function ($discord) {
         }
 
         if ($message->content == '!nowplaying' && ! $message->author->bot) {
-
+	    wh_log("[ Bassdrive Bot - {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]"); 
             $newShow = getShow();
             $thumbnail = getThumbnail($newShow);
             $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
@@ -404,6 +420,8 @@ $discord->on('ready', function ($discord) {
                   ->setThumbnail($thumbnail);
             $message->channel->sendEmbed($embed);
         }
+
+
     });
 });
 
