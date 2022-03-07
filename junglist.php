@@ -61,23 +61,114 @@ $discord->on('ready', function ($discord) {
 
     // Listen for messages.
     $discord->on('message', function ($message, $discord) {
+
         $weekDays = array('!monday','!tuesday','!wednesday','!thursday','!friday','!saturday','!sunday');
 	$letters = array ('a' => '🇦', 'b'=>'🇧', 'c'=>'🇨', 'd'=>'🇩','e'=>'🇪','f'=>'🇫','g'=>'🇬','h'=>'🇭','i'=>'🇮','j'=>'🇯','k'=>'🇰','l'=>'🇱','m'=>'🇲','n'=>'🇳','o'=>'🇴','p'=>'🇵','q'=>'🇶','r'=>'🇷','s'=>'🇸','t'=>'🇹','u'=>'🇺','v'=>'🇻','w'=>'🇼','x'=>'🇽','y'=>'🇾','z'=>'🇿');
 	
 	if ($message->content && ! $message->author->bot) {
 		global $conn;
 		$userName = filter_var($message->author->username,FILTER_SANITIZE_STRING);
+		$userNick = filter_var($message->member->nick,FILTER_SANITIZE_STRING);
 		$theMessage = filter_var($message->content,FILTER_SANITIZE_STRING);
-		$lowName = strtolower($userName);
-		$sql = "SELECT * from last_seen where LOWER(username)='$lowName'";
-		$result = $conn->query($sql);
-		if ($row = $result->fetch_assoc()) {
-			$sql = "update last_seen set the_message='$theMessage' where id={$row['id']}";
-			$result = $conn->query($sql);
+		$theMessage = mysqli_real_escape_string($conn, $theMessage);
+		if (isset($userNick) && $userNick != '') {
+			$lowName = strtolower($userNick);
+			$usedName = $userNick;
 		} else {
-			$updated_at = date("D d-M-Y h:i:sa");
-			$sql = "INSERT INTO last_seen (username, the_message, updated_at) VALUES ('$userName', '$theMessage', '$updated_at')";
+			$lowName = strtolower($userName);
+			$usedName = $userName;
+		}
+		$updated_at = date("D d-M-Y h:i:sa");
+		$sql = ("INSERT INTO `last_seen` (`username`,`user_id`, `the_message`, `updated_at`) VALUES (
+			'".mysqli_real_escape_string($conn, $usedName)."',".
+			mysqli_real_escape_string($conn, $message->user_id).",'".
+			mysqli_real_escape_string($conn, $message->content)."','".
+			$updated_at."'
+		) ON DUPLICATE KEY UPDATE 
+		`the_message`='".mysqli_real_escape_string($conn, $message->content)."',
+		`message_count`=message_count+1"
+		);
+		//var_dump($sql);
+		$result = $conn->query($sql);
+		//var_dump($result);
+	}
+
+	if (str_contains(strtolower($message->content),'!stats') && ! $message->author->bot && $message->author->username == 'Section31') {
+		global $conn;
+		wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+		$bots = ['junglist', 'bot'];
+		$embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
+		$whichBot = explode(" ", $message->content);
+		if (in_array($whichBot[1], $bots)) {
+			$bot = $whichBot[1];
+			exec("ps ax | grep $bot.php", $results);
+			$botpid = explode(' ',$results[0]);
+			$thePid = $botpid[1];
+			unset($results);
+			exec("ps -p $thePid -o etime",$results);
+			$uptime = $results[1];
+			if (str_contains($uptime,'-')) {
+				$days = explode('-',$uptime);
+				$totalUptime = "$days[0] days ";
+				$remainingTime = explode(':',$days[1]);
+				$totalUptime .= "$remainingTime[0] hours $remainingTime[1] minutes $remainingTime[2] seconds";
+
+			} else {
+				$remainingTime = explode(':',$uptime);
+				if (sizeof($remainingTime) == 2) {
+					$totalUptime = "$remainingTime[0] minutes $remainingTime[1] seconds";
+				}
+				if (sizeof($remainingTime) == 3) {
+					$totalUptime = "$remainingTime[0] hours $remainingTime[1] minutes $remainingTime[2] seconds";
+				}
+			}
+			$embed->setTitle("::: $bot Stats :::" )
+	 ->setType($embed::TYPE_RICH)
+	 ->setDescription('')
+	 ->setColor('blue');
+			$embed->addField([
+				'name' => "Uptime",
+				'value' => "$totalUptime",
+				'inline' => true,
+			]);
+			$embed->addField([
+				'name' => "Pid",
+				'value' => "$thePid",
+				'inline' => true,
+			]);
+			$sql = "SELECT * FROM last_seen order by message_count";
 			$result = $conn->query($sql);
+			$rowcount=mysqli_num_rows($result);
+			$embed->addField([
+				'name' => "Active users",
+				'value' => "$rowcount",
+				'inline' => false,
+			]);
+			unset($rowcount);
+			unset($result);
+			$sql = "SELECT * FROM last_seen where lastupdated > now() - interval 24 hour";
+			$result = $conn->query($sql);
+			$rowcount=mysqli_num_rows($result);
+			$embed->addField([
+				'name' => "Active users (24/hrs)",
+				'value' => "$rowcount",
+				'inline' => true,
+			]);
+			$sql = "SELECT * FROM last_seen order by message_count DESC limit 5";
+			$result = $conn->query($sql);
+			$theUsers='';
+			while ($row = $result->fetch_assoc()) {
+					$messageCount = $row['message_count'];
+					$topUser = $row['username'];
+					$theUsers .="$topUser - $messageCount \n"; 
+			}
+			$embed->addField([
+				'name' => "Top Listeners",
+				'value' => $theUsers,
+				'inline' => false,
+			]);
+
+			$message->channel->sendEmbed($embed);
 		}
 	}
 
@@ -89,7 +180,7 @@ $discord->on('ready', function ($discord) {
             $message->react($honk2)->done(function () {});
 	}
 
-	$kickWords = ['pendulum','dubstep','infobot','live?'];
+	$kickWords = ['pendulum','dubstep','live?'];
 	$messageWords = explode(" ",strtolower($message->content));
 	foreach ($messageWords as $messageWord) {	
 		if (in_array($messageWord,$kickWords) && ! $message->author->bot) {
@@ -231,21 +322,11 @@ $discord->on('ready', function ($discord) {
 	}
 
 
-	/*if (str_contains($message->content,'!seba') && ! $message->author->bot) {
-		$promo = 'https://scontent-atl3-1.xx.fbcdn.net/v/t39.30808-6/273246529_472336101007559_1176083929138564907_n.jpg?_nc_cat=111&ccb=1-5&_nc_sid=8bfeb9&_nc_ohc=RUHihSHEs54AX_QM7-7&_nc_ht=scontent-atl3-1.xx&oh=00_AT_0J_2QVap6ow-ZJ-5BDaBiK9mzE7k4Vs6S35KKlHrCew&oe=62015EF6';
-		$embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
-		$embed->setImage($promo)
-	->setType($embed::TYPE_RICH)
-	->setColor('blue');
-		$message->channel->sendEmbed($embed);
-	}
-	 */
-
-
 	if (str_contains($message->content,'!seen') && ! $message->author->bot) {
 		wh_log("[ {$message->author->username} : $message->content " . date("D d-M-Y h:i:sa") ." ]");
 		$seenUser = explode(' ',$message->content);
-		$userSeen = $seenUser[1]; 
+		unset($seenUser[0]);
+		$userSeen = implode(" ",$seenUser);
 		$userSeen = filter_var($userSeen,FILTER_SANITIZE_SPECIAL_CHARS);
 		$userSeen = filter_var($userSeen,FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
 		$lowUser = strtolower($userSeen);
@@ -256,7 +337,7 @@ $discord->on('ready', function ($discord) {
 				$sql = "SELECT * from last_seen where LOWER(username)='$lowUser'";
 				$result = $conn->query($sql);
 				if ($row = $result->fetch_assoc()) {
-					$message->reply($row['username'] ." was last seen on {$row['updated_at']}, saying: {$row['the_message']}");
+					$message->reply($row['username'] ." was last seen on {$row['updated_at']}, saying: \n{$row['the_message']}");
 				} else {
 					$message->reply("sorry {$message->author->username}, I don't have anything for $userSeen");
 				}
