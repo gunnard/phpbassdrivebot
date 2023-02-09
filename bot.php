@@ -31,6 +31,31 @@ function wh_log($log_msg)
     file_put_contents($log_file_data, $log_msg . "\n", FILE_APPEND);
 } 
 
+function db_log($message,$action)
+{
+	global $conn;
+	$userName = filter_var($message->author->username,FILTER_SANITIZE_STRING);
+	$userNick = filter_var($message->member->nick,FILTER_SANITIZE_STRING);
+	if (isset($userNick) && $userNick != '') {
+		$lowName = strtolower($userNick);
+		$usedName = $userNick;
+	} else {
+		$lowName = strtolower($userName);
+		$usedName = $userName;
+	}
+	$updated_at = date("D d-M-Y h:i:sa");
+	$sql = ("INSERT INTO `bot_stats` (`command`,`user`,`p_updated_at`) VALUES (
+		'".$action."',
+		'".mysqli_real_escape_string($conn, $usedName)."','".
+		$updated_at."'
+	) ON DUPLICATE KEY UPDATE
+	`command_count`=command_count+1"
+	);
+	//var_dump($sql);
+	$result = $conn->query($sql);
+	//var_dump($result);
+}
+
 // Check connection
 if ($conn -> connect_errno) {
   echo "Failed to connect to MySQL: " . $conn -> connect_error;
@@ -56,7 +81,7 @@ function getSchedule($day) {
     global $conn;
     $week = week_number();
     $day = ucfirst($day);
-    $sql = "SELECT * FROM show_info WHERE day='$day' and wk$week=1";
+    $sql = "SELECT * FROM show_info WHERE day='$day' and wk$week=1 order by endtime_ct asc";
     $result = $conn->query($sql);
     $shows = array();
     if ($result->num_rows >0) {
@@ -77,7 +102,7 @@ function getTwitch() {
 	$data = array (
 		'channel' => 'bassdrive_radio'
 	);
-	$access_token = 'k0tsql436p27fk0c1ste4fhdwxesxv';
+	$access_token = '61951m0nulutmr9hiv4y4haqup99kd';
 	$clientId = 'oiaj85u4lww35nv6eco0yrq5g3zibv';
 
 	//$twitchDjs = ['natereflect','amnestydj','sohl_man','powerrinse','barbarousking'];
@@ -100,19 +125,20 @@ function getTwitch() {
 		curl_close($ch);
 
 		$jsonResponse = json_decode($response, TRUE);
-		if (isset($jsonResponse['data'])) {
-			if (count($jsonResponse['data']) != 0) {
-				$twitchLive = $twitchDj;
-				break;
+		if (!isset($jsonResponse['error'])) {
+			if ($jsonResponse['data'] != null) {
+				if (str_contains(strtolower($jsonResponse['data'][0]['title']), 'bassdrive')) {
+					$twitchLive = ['name' => $twitchDj, 'title' => $jsonResponse['data'][0]['title'] ];
+					break;
+				}
 			}
 		}
-
 	}
 	//var_dump($twitchLive);
 	if ($twitchLive) {
 		return $twitchLive;
 	} else {
-		return null;
+		$twitchLive = ['name' => null, 'title' => null ];
 	}
 }
 
@@ -336,20 +362,34 @@ $discord->on('ready', function ($discord) {
             $channel = $discord->getChannel('766141517005455396');
             $channel->sendMessage(MessageBuilder::new()
                 ->addEmbed($embed));
+	    $channel = $discord->getChannel('766141517005455396');
+	    $channel->broadcastTyping();
         }
 
-	//echo "=====>$currentTwitch (current) $newTwitch (newTwitch) <=====\n";
 	//echo "=====>$currentShow (current) $newShow (newShow) <=====\n";
-	if ($currentTwitch != $newTwitch && $currentTwitch != null) {
-		$output = null;
-		$retval = null;
-		if ($newTwitch) {
-			$currentTwitch = $newTwitch;
-			echo "=====>$newTwitch <=====\n";
-			exec("node /home/section31/code/twitchChatBot/bot.js host $newTwitch",$output,$retval);
-		} else {
-			exec("node /home/section31/code/twitchChatBot/bot.js unhost",$output,$retval);
-			$currentTwitch = null;
+	if (isset($newTwitch['name'])) {
+		if ($currentTwitch['name'] != $newTwitch['name'] && $newTwitch['name'] != null) {
+			echo "=====>{$currentTwitch['name']} (current) {$newTwitch['name']} (newTwitch) <=====\n";
+			wh_log("[ Current Twitch: {$currentTwitch['name']} NEW TWITCH {$newTwitch['name']} " . date("D d-M-Y h:i:sa") ." ]"); 
+			$output = null;
+			$retval = null;
+			$thumbnail = 'https://cdn.vox-cdn.com/thumbor/Hr-qRdy-IJYsjvfLx3VY8rljpx8=/0x0:2040x1360/1820x1213/filters:focal(857x517:1183x843):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/69968838/acastro_190923_twitch_0001.0.0.jpg';
+			if ($newTwitch) {
+				$currentTwitch['name'] = $newTwitch['name'];
+				$embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
+				$embed->setTitle("::: [bd] now playing on Twitch ::: {$newTwitch['title']} :::" )
+	  ->setType($embed::TYPE_RICH)
+	  ->setDescription("Tune in: https://www.twitch.tv/bassdrive")
+	  ->setThumbnail($thumbnail)
+	  ->setColor('blue');
+				$channel = $discord->getChannel('918981144207302716');
+				$channel->sendMessage(MessageBuilder::new()
+					->addEmbed($embed));
+				//exec("node /home/section31/code/twitchChatBot/bot.js host {$newTwitch['name']}",$output,$retval);
+			} else {
+				//exec("node /home/section31/code/twitchChatBot/bot.js unhost",$output,$retval);
+				$currentTwitch['name'] = null;
+			}
 		}
 	}
     });
@@ -362,6 +402,7 @@ $discord->on('ready', function ($discord) {
         if (in_array(strtolower($message->content),$weekDays) && ! $message->author->bot) {
 	    wh_log("[ Bassdrive Bot - {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]"); 
             $theDay = ltrim(strtolower($message->content),'!');
+	    db_log($message,$theDay);
             $theSchedule = getSchedule($theDay);
             $theWeek = week_number();
             $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
@@ -382,6 +423,7 @@ $discord->on('ready', function ($discord) {
 
         if ($message->content == '!pls' && ! $message->author->bot) {
 	    wh_log("[ Bassdrive Bot - {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]"); 
+	    db_log($message,'!pls');
             $newShow = getShow();
             $thumbnail = getThumbnail($newShow);
             $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
@@ -410,6 +452,7 @@ $discord->on('ready', function ($discord) {
 
         if ($message->content == '!nowplaying' && ! $message->author->bot) {
 	    wh_log("[ Bassdrive Bot - {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]"); 
+	    db_log($message,"!nowplaying");
             $newShow = getShow();
             $thumbnail = getThumbnail($newShow);
             $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
@@ -419,6 +462,8 @@ $discord->on('ready', function ($discord) {
                   ->setColor('blue')
                   ->setThumbnail($thumbnail);
             $message->channel->sendEmbed($embed);
+	    $channel = $discord->getChannel('766141517005455396');
+	    $channel->broadcastTyping();
         }
 
 

@@ -36,6 +36,32 @@ function wh_log($log_msg)
 	file_put_contents($log_file_data, $log_msg . "\n", FILE_APPEND);
 }
 
+function db_log($message,$action)
+{
+        global $conn;
+        $userName = filter_var($message->author->username,FILTER_SANITIZE_STRING);
+        $userNick = filter_var($message->member->nick,FILTER_SANITIZE_STRING);
+        if (isset($userNick) && $userNick != '') {
+                $lowName = strtolower($userNick);
+                $usedName = $userNick;
+        } else {
+                $lowName = strtolower($userName);
+                $usedName = $userName;
+        }
+        $updated_at = date("D d-M-Y h:i:sa");
+        $sql = ("INSERT INTO `junglist_stats` (`command`,`user`,`p_updated_at`) VALUES (
+                '".$action."',
+                '".mysqli_real_escape_string($conn, $usedName)."','".
+                $updated_at."'
+        ) ON DUPLICATE KEY UPDATE
+        `command_count`=command_count+1"
+        );
+        //var_dump($sql);
+        $result = $conn->query($sql);
+        //var_dump($result);
+}
+
+
 function clean_string($string) {
   $s = trim($string);
   $s = iconv("UTF-8", "UTF-8//IGNORE", $s); // drop all non utf-8 characters
@@ -82,30 +108,33 @@ $discord->on('ready', function ($discord) {
 		$sql = ("INSERT INTO `last_seen` (`username`,`user_id`, `the_message`, `updated_at`) VALUES (
 			'".mysqli_real_escape_string($conn, $usedName)."',".
 			mysqli_real_escape_string($conn, $message->user_id).",'".
-			mysqli_real_escape_string($conn, $message->content)."','".
-			$updated_at."'
+			mysqli_real_escape_string($conn, $message->content)."',
+			'".$updated_at."'
 		) ON DUPLICATE KEY UPDATE 
 		`the_message`='".mysqli_real_escape_string($conn, $message->content)."',
-		`message_count`=message_count+1"
+		`message_count`=message_count+1,
+		`updated_at`='".$updated_at."'"
 		);
-		//var_dump($sql);
 		$result = $conn->query($sql);
-		//var_dump($result);
 	}
 
 	if (str_contains(strtolower($message->content),'!stats') && ! $message->author->bot && $message->author->username == 'Section31') {
 		global $conn;
-		wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+		wh_log("[ junglist -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+		db_log($message,"!stats");
 		$bots = ['junglist', 'bot'];
 		$embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
 		$whichBot = explode(" ", $message->content);
 		if (in_array($whichBot[1], $bots)) {
 			$bot = $whichBot[1];
+			//var_dump($bot);
 			exec("ps ax | grep $bot.php", $results);
 			$botpid = explode(' ',$results[0]);
-			$thePid = $botpid[1];
+			$thePid = $botpid[0];
+			//var_dump($thePid);
 			unset($results);
 			exec("ps -p $thePid -o etime",$results);
+			//var_dump($results);
 			$uptime = $results[1];
 			if (str_contains($uptime,'-')) {
 				$days = explode('-',$uptime);
@@ -140,7 +169,7 @@ $discord->on('ready', function ($discord) {
 			$result = $conn->query($sql);
 			$rowcount=mysqli_num_rows($result);
 			$embed->addField([
-				'name' => "Active users",
+				'name' => "Total users",
 				'value' => "$rowcount",
 				'inline' => false,
 			]);
@@ -163,10 +192,41 @@ $discord->on('ready', function ($discord) {
 					$theUsers .="$topUser - $messageCount \n"; 
 			}
 			$embed->addField([
-				'name' => "Top Listeners",
+				'name' => "Top Users",
 				'value' => $theUsers,
 				'inline' => false,
 			]);
+			if ($bot == 'junglist') {
+				$sql = "SELECT * FROM junglist_stats order by command_count DESC";
+				$result = $conn->query($sql);
+				$theCount='';
+				while ($row = $result->fetch_assoc()) {
+					$actionCount = $row['command_count'];
+					$action = $row['command'];
+					$theCount .="$action - $actionCount \n"; 
+				}
+				$embed->addField([
+					'name' => "Command Stats",
+					'value' => $theCount,
+					'inline' => false,
+				]);
+			}
+
+			if ($bot == 'bot') {
+				$sql = "SELECT * FROM bot_stats order by command_count DESC";
+				$result = $conn->query($sql);
+				$theCount='';
+				while ($row = $result->fetch_assoc()) {
+					$actionCount = $row['command_count'];
+					$action = $row['command'];
+					$theCount .="$action - $actionCount \n";
+				}
+				$embed->addField([
+					'name' => "Command Stats",
+					'value' => $theCount,
+					'inline' => false,
+				]);
+			}
 
 			$message->channel->sendEmbed($embed);
 		}
@@ -174,10 +234,18 @@ $discord->on('ready', function ($discord) {
 
         if (str_contains(strtolower($message->content),'honk') && ! $message->author->bot) {
 	    wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+	    db_log($message,"!honk");
             $honk = '🦤';;
             $honk2 = '📣';
             $message->react($honk)->done(function () {});
             $message->react($honk2)->done(function () {});
+	}
+
+        if (str_contains(strtolower($message->content),'donate') && ! $message->author->bot) {
+	    wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+	    db_log($message,"!donate");
+            $donate = 'https://www.paypal.com/webapps/shoppingcart?flowlogging_id=f8085355e27da&mfid=1669652658200_f8085355e27da#/checkout/openButton';
+            $message->reply($donate)->done(function () {});
 	}
 
 	$kickWords = ['pendulum','dubstep','live?'];
@@ -185,6 +253,7 @@ $discord->on('ready', function ($discord) {
 	foreach ($messageWords as $messageWord) {	
 		if (in_array($messageWord,$kickWords) && ! $message->author->bot) {
 			wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+			db_log($message,$messageWord);
 			$guild = $discord->guilds->get('id', $message->guild_id);
 			$message->reply("Hey  ".$message->author->username ." ! Watch your mouth!");
 			//message->reply($message->author->id)
@@ -204,52 +273,85 @@ $discord->on('ready', function ($discord) {
 
         if (str_contains(strtolower($message->content),'clown') && ! $message->author->bot) {
 	    wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+	    db_log($message,"clown");
             $clown = '🤡';
             $message->react($clown)->done(function () {});
         }
 
         if (str_contains(strtolower($message->content),'!date') && ! $message->author->bot) {
-	    wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+	$channel = $discord->getChannel('766141517005455396');
+	$channel->broadcastTyping();
+	    wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("l d-M-Y h:i:sa") ." ]");
+	    db_log($message,"!date");
 	    #$theDate = "Current Bassdrive time is: " . date("l") ". date("h:i:s a")." ". date("Y-m-d");
-	    $theDate = "Current Bassdrive time is: " . date("D d-M-Y h:i:sa");
+	    $theDate = "Current Bassdrive time is: " . date("l d-M-Y h:i:sa");
             $message->reply($theDate)->done(function () {});
         }
 
-        if (str_contains(strtolower($message->content),'junglist?') && ! $message->author->bot) {
+        if (str_contains(strtolower($message->content),'!8ball') && ! $message->author->bot) {
+	$channel = $discord->getChannel('766141517005455396');
+	$channel->broadcastTyping();
 	    wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+	    db_log($message,"8ball");
+	    $ballAnswers = ['It is certain', 'Reply hazy, try again', 'Don’t count on it', 'It is decidedly so', 'Ask again later', 'My reply is no', 'Without a doubt', 'Better not tell you now', 'My sources say no', 'Yes definitely', 'Cannot predict now	', 'Outlook not so good', 'You may rely on it', 'Concentrate and ask again', 'Very doubtful', 'As I see it, yes', 'Most likely','Outlook good', 'Yes', 'Signs point to yes'];
+	    $ballTotals = sizeof($ballAnswers);
+	    $theAnswer = rand(0, $ballTotals);
+	    $Ball = $message->author->username .' shakes the the 🎱  --  '. $ballAnswers[$theAnswer];
+            $message->reply($Ball);
+        }
+
+        if (str_contains(strtolower($message->content),'junglist?') && ! $message->author->bot) {
+	$channel = $discord->getChannel('766141517005455396');
+	$channel->broadcastTyping();
+	    wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+	    db_log($message,"junglist?");
             $beard = 'Lol, I am a beard!';
             $message->reply($beard);
         }
 
         if (strtolower($message->content) =='b0h b0h b0h' && ! $message->author->bot) {
+	$channel = $discord->getChannel('766141517005455396');
+	$channel->broadcastTyping();
 	    wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
-	    $boh = 'I heard b0h b0h b0h was h0b h0b h0b';
+	    db_log($message,"b0h b0h b0h");
+	    $boh = 'I heard b0h b0h b0h was h0b h0b h0b or ke ke ke';
             $message->react($letters['h'])->done(function () {});
             $message->react($letters['o'])->done(function () {});
             $message->react($letters['b'])->done(function () {});
             $message->reply($boh);
         }
 
+        if (strtolower($message->content) == 'all of you!' && ! $message->author->bot) {
+	    wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+	    db_log($message,"all of you");
+	    $allOfYou = 'ALL OF YOU LISTEN TO MEE, DON\'T DISTURB HERE. I WILL CALL POLICE CATCH YOU, DON\'T COME TO  MY BANGOLOW HOUSE, UNDERSTAND, O.K. I HATE ALL OF YOU.';
+            $message->reply($allOfYou);
+        }
+
         if (strtolower($message->content) =='do a flip' && ! $message->author->bot) {
 	    wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+	    db_log($message,"do a flip");
 	    $flip = '/( .□.) ︵╰(゜益゜)╯︵ /(.□. /)';
             $message->reply($flip);
         }
 
         if (strtolower($message->content) =='flip a table' && ! $message->author->bot) {
 		wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+		db_log($message,"flip a table");
 		$table ="(ﾉ´□｀)ﾉ ┫:･’∵:.┻┻:･’.:┣∵･:. ┳┳";
 		$message->reply($table);
         }
 	
         if (strtolower($message->content) =='yo yo yo' && ! $message->author->bot) {
 		wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+		db_log($message,"yo yo yo");
 		$mtv ="I heard yo yo yo was MTV Raps!";
 		$message->reply($mtv);
         }
 
         if (strtolower($message->content) =='you guys' && ! $message->author->bot) {
 		wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+		db_log($message,"you guys");
 		$youGuys ="you guys are insane";
 		$message->reply($youGuys);
         }
@@ -257,11 +359,13 @@ $discord->on('ready', function ($discord) {
 	$trackIdResponses = ['Track ID: Wet Arena - Pimple Bee', 'due to delinquent account tune ID privileges will be revoked in 30 days unless payment is received'];
 	if (str_contains(strtolower($message->content),'tune id') && ! $message->author->bot) { 
 		wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+		db_log($message,"tune id");
 		$randResponse = mt_rand(0,count($trackIdResponses)-1);
 		$message->reply($trackIdResponses[$randResponse]);
 	}
 	if (str_contains(strtolower($message->content),'track id') && ! $message->author->bot) { 
 		wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+		db_log($message,"track id");
 		$randResponse = mt_rand(0,count($trackIdResponses)-1);
 		$message->reply($trackIdResponses[$randResponse]);
 	}
@@ -273,6 +377,7 @@ $discord->on('ready', function ($discord) {
 	foreach ($messageWords as $messageWord) {	
 		if (in_array($messageWord, $jokes) && ! $message->author->bot) {
 			wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+			db_log($message,"yow");
 			global $conn;
 			$sql = "SELECT joke FROM jokes order by rand() limit 1";
 			$result = $conn->query($sql);
@@ -290,6 +395,7 @@ $discord->on('ready', function ($discord) {
 
         if (str_contains(strtolower($message->content),'vibes') && ! $message->author->bot) {
 	    wh_log("[ InfoBot -  {$message->author->username} - $message->content - " . date("D d-M-Y h:i:sa") ." ]");
+	    db_log($message,"vibes");
             $message->react($letters['v'])->done(function () {});
             $message->react($letters['i'])->done(function () {});
             $message->react($letters['b'])->done(function () {});
@@ -299,6 +405,7 @@ $discord->on('ready', function ($discord) {
 
         if (str_contains(strtolower($message->content),'locked') && ! $message->author->bot) {
 	    wh_log("[ {$message->author->username} : $message->content " . date("D d-M-Y h:i:sa") ." ]");
+	    db_log($message,"locked");
             $lock = '🔒';
             $message->react($lock)->done(function () {});
             $message->react($letters['l'])->done(function () {});
@@ -314,6 +421,7 @@ $discord->on('ready', function ($discord) {
 	foreach ($messageWords as $messageWord) {	
 		if (in_array($messageWord, $biggupsWords) && ! $message->author->bot) {
 			wh_log("[ {$message->author->username} : $message->content " . date("D d-M-Y h:i:sa") ." ]");
+			db_log($message,$messageWord);
 			$message->react($letters['b'])->done(function () {});
 			$message->react($letters['o'])->done(function () {});
 			$message->react($letters['h'])->done(function () {});
@@ -324,30 +432,44 @@ $discord->on('ready', function ($discord) {
 
 	if (str_contains($message->content,'!seen') && ! $message->author->bot) {
 		wh_log("[ {$message->author->username} : $message->content " . date("D d-M-Y h:i:sa") ." ]");
+		db_log($message,"!seen");
 		$seenUser = explode(' ',$message->content);
 		unset($seenUser[0]);
 		$userSeen = implode(" ",$seenUser);
 		$userSeen = filter_var($userSeen,FILTER_SANITIZE_SPECIAL_CHARS);
 		$userSeen = filter_var($userSeen,FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH);
 		$lowUser = strtolower($userSeen);
-		if (isset($lowUser)) {
-			if ($lowUser == '') {
-				$message->reply("sorry {$message->author->username}, but I can't do that.");
-			} else {
-				$sql = "SELECT * from last_seen where LOWER(username)='$lowUser'";
-				$result = $conn->query($sql);
-				if ($row = $result->fetch_assoc()) {
-					$message->reply($row['username'] ." was last seen on {$row['updated_at']}, saying: \n{$row['the_message']}");
+		if ($userSeen[0] == '&') {
+			$search = "&#60;@!";
+			$userSeen = str_replace($search,'',$lowUser);
+			$search = "&#62;";
+			$userSeen = str_replace($search,'',$userSeen);
+			$sql = "SELECT * from last_seen where user_id='$userSeen'";
+			$result = $conn->query($sql);
+			if ($row = $result->fetch_assoc()) {
+				$message->reply($row['username'] ." was last seen on {$row['updated_at']}, saying: \n{$row['the_message']}");
+			}
+		} else {
+			if (isset($lowUser)) {
+				if ($lowUser == '') {
+					$message->reply("sorry {$message->author->username}, but I can't do that.");
 				} else {
-					$message->reply("sorry {$message->author->username}, I don't have anything for $userSeen");
+					$sql = "SELECT * from last_seen where LOWER(username)='$lowUser'";
+					var_dump($sql);
+					$result = $conn->query($sql);
+					if ($row = $result->fetch_assoc()) {
+						$message->reply($row['username'] ." was last seen on {$row['updated_at']}, saying: \n{$row['the_message']}");
+					} else {
+						$message->reply("sorry {$message->author->username}, I don't have anything for `$userSeen`");
+					}
 				}
 			}
 		}
 	}
 
-
         if (str_contains($message->content,'!weather') && ! $message->author->bot) {
             wh_log("[ {$message->author->username} : $message->content " . date("D d-M-Y h:i:sa") ." ]");
+	    db_log($message,"!weather");
 	    $embed = $discord->factory(\Discord\Parts\Embed\Embed::class);
 	    $weather = explode(' ',$message->content);
             $location = '';
