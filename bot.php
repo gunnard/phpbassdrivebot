@@ -440,8 +440,8 @@ $discord->on('ready', function ($discord) {
 		    $startDateTime = newDateTime('today', $timezone);
 		    $endDateTime = newDateTime('today', $timezone);
 
-		    $startTime = (int)explode(':', $show['starttime_ct'])
-		    $endTime = (int)explode(':', $show['endtime_ct'])
+		    $startTime = (int)explode(':', $show['starttime_ct']);
+		    $endTime = (int)explode(':', $show['endtime_ct']);
 			    
 		    $startDateTime->setTime($startTime[0], $startTime[1]);
 		    $endDateTime->setTime($endTime[0], $endTime[1]);
@@ -455,7 +455,7 @@ $discord->on('ready', function ($discord) {
                       'inline' => false,
                   ]);
             }
-                  $embed->setFooter('*All times CT and are subject to change. (week ' . $theWeek . ')');
+                  $embed->setFooter('*All times local and are subject to change. (week ' . $theWeek . ')');
             $message->channel->sendEmbed($embed);
         }
 
