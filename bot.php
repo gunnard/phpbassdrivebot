@@ -436,9 +436,22 @@ $discord->on('ready', function ($discord) {
                   ->setDescription('Tune in: https://www.bassdrive.com/pop-up')
                   ->setColor('blue');
             foreach ($theSchedule as $show) {
+		    $timezone = new DateTimeZone('CST6CDT');
+		    $startDateTime = newDateTime('today', $timezone);
+		    $endDateTime = newDateTime('today', $timezone);
+
+		    $startTime = (int)explode(':', $show['starttime_ct'])
+		    $endTime = (int)explode(':', $show['endtime_ct'])
+			    
+		    $startDateTime->setTime($startTime[0], $startTime[1]);
+		    $endDateTime->setTime($endTime[0], $endTime[1]);
+
+		    $startTimestamp = $startDateTime->getTimestamp();
+		    $endTimestamp = $endDateTime->getTimestamp();
+		    
                   $embed->addField([
                       'name' => $show['showname'] . ' :: ' . ' w/ ' . $show['hostname'],
-                      'value' => $show['starttime_ct'] . '-' . $show['endtime_ct'],
+                      'value' => "<t:$startTimestamp:t>" . '-' . "<t:$endTimestamp:t>",
                       'inline' => false,
                   ]);
             }
